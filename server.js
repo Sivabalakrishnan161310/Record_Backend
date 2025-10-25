@@ -9,41 +9,54 @@ dotenv.config();
 
 const app = express();
 
-// ✅ MongoDB Connection
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 30000,
-    socketTimeoutMS: 45000,
-  })
-  .then(() => console.log('✅ MongoDB connected successfully'))
-  .catch((err) => {
-    console.error('❌ MongoDB connection error:', err);
-    console.error('Connection string:', process.env.MONGODB_URI ? 'Present' : 'Missing');
-  });
+// ===============================
+// 🔹 1. MongoDB Connection
+// ===============================
+mongoose.connect(process.env.MONGODB_URI, {
+  serverSelectionTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+})
+.then(() => console.log('✅ MongoDB connected successfully'))
+.catch(err => {
+  console.error('❌ MongoDB connection error:', err);
+  console.error('Connection string:', process.env.MONGODB_URI ? 'Present' : 'Missing');
+});
 
-// ✅ Monitor MongoDB connection
+// Monitor connection status
 mongoose.connection.on('connected', () => console.log('✅ Mongoose connected'));
-mongoose.connection.on('error', (err) => console.error('❌ Mongoose error:', err));
+mongoose.connection.on('error', err => console.error('❌ Mongoose error:', err));
 mongoose.connection.on('disconnected', () => console.log('⚠️ Mongoose disconnected'));
 
-// ✅ Global CORS Middleware (works for both local + Vercel)
+// ===============================
+// 🔹 2. CORS Setup (Allow All)
+// ===============================
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+  res.header('Access-Control-Allow-Origin', '*'); // Allow all origins
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  
-  // Handle preflight requests quickly
   if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
+    return res.status(200).end();
   }
   next();
 });
 
+// Alternatively use CORS middleware for all origins
+app.use(cors({
+  origin: '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+}));
+
+app.options('*', cors()); // Handle preflight globally
+
+// ===============================
+// 🔹 3. Middleware
+// ===============================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Request Logging
+// Request logger (optional but useful)
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`, {
     origin: req.headers.origin,
@@ -52,11 +65,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ Routes
+// ===============================
+// 🔹 4. Routes
+// ===============================
 app.use('/api/auth', authRoutes);
 app.use('/api/support', supportRoutes);
 
-// ✅ Root Route
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -70,40 +84,30 @@ app.get('/', (req, res) => {
   });
 });
 
-// ✅ Health Check Route
 app.get('/api/health', (req, res) => {
   const dbState = mongoose.connection.readyState;
-  const states = {
-    0: 'Disconnected',
-    1: 'Connected',
-    2: 'Connecting',
-    3: 'Disconnecting',
-  };
-
+  const states = ['Disconnected', 'Connected', 'Connecting', 'Disconnecting'];
   res.json({
     success: true,
-    message: 'Server is running',
+    message: 'Server running fine',
     database: states[dbState],
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
   });
 });
 
-// ✅ Test DB Connection
-app.get('/api/test-db', async (req, res) => {
-  try {
-    const dbState = mongoose.connection.readyState;
-    if (dbState === 1) {
-      res.json({ success: true, message: 'Database connected successfully', state: 'Connected' });
-    } else {
-      res.status(503).json({ success: false, message: 'Database not connected', state: dbState });
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+app.get('/api/test-db', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  if (dbState === 1) {
+    res.json({ success: true, message: 'DB connected', state: 'Connected' });
+  } else {
+    res.status(503).json({ success: false, message: 'DB not connected', state: dbState });
   }
 });
 
-// ✅ 404 Handler
+// ===============================
+// 🔹 5. Error Handling
+// ===============================
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -112,7 +116,6 @@ app.use((req, res) => {
   });
 });
 
-// ✅ Error Handler
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
   res.status(err.status || 500).json({
@@ -122,14 +125,17 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+// ===============================
+// 🔹 6. Server Export for Vercel
+// ===============================
 
-// ✅ Always start server (needed for Vercel middleware initialization)
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 CORS enabled for all origins`);
-});
-
-// ✅ Export app for Vercel serverless
+// 🚫 Don't use app.listen() in Vercel — export app instead
 module.exports = app;
+
+// ✅ If running locally (development), enable app.listen
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running locally on port ${PORT}`);
+  });
+}
