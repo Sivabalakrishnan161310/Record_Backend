@@ -42,7 +42,7 @@ app.use((req, res, next) => {
 
 // Alternatively use CORS middleware for all origins
 app.use(cors({
-  origin: '*',
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
