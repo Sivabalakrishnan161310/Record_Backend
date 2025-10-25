@@ -38,31 +38,13 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:3000',
-  process.env.CLIENT_URL,
-  /\.vercel\.app$/, // Allow all Vercel deployments
+  /^https:\/\/.*\.vercel\.app$/, // Allow ALL Vercel domains
 ];
 
+// CORS Configuration - Allow All Origins
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-    
-    // Check if origin is in allowedOrigins or matches regex
-    const isAllowed = allowedOrigins.some(allowed => {
-      if (allowed instanceof RegExp) {
-        return allowed.test(origin);
-      }
-      return allowed === origin;
-    });
-    
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      console.log('Blocked by CORS:', origin);
-      callback(null, true); // Still allow but log it
-    }
-  },
-  credentials: true,
+  origin: '*', // ✅ Allow all origins
+  credentials: false, // ❌ Must be false when using '*'
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
