@@ -129,13 +129,9 @@ app.use((err, req, res, next) => {
 // 🔹 6. Server Export for Vercel
 // ===============================
 
-// 🚫 Don't use app.listen() in Vercel — export app instead
-module.exports = app;
 
-// ✅ If running locally (development), enable app.listen
-if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
+  app.listen(PORT, "0.0.0.0",() => {
     console.log(`🚀 Server running locally on port ${PORT}`);
   });
-}
+
