@@ -150,13 +150,12 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 // Only start server if not in serverless environment
-if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🌐 CORS enabled for: ${process.env.CLIENT_URL || 'localhost'}`);
   });
-}
+
 
 // Export for Vercel serverless
 module.exports = app;
